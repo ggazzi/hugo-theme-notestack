@@ -2,7 +2,7 @@
 
 A Hugo theme for densely interconected notes.
 
-Heavily inspired by the [cortex theme](https://github.com/jethrokuan/cortex).
+Heavily inspired by the [cortex theme](https://github.com/jethrokuan/cortex) and the online version of the book [Crafting Interpreters](https://craftinginterpreters.com).
 
 
 ## Features
