@@ -1,0 +1,14 @@
+<form id="search"
+  action='{{ with .GetPage "/search" }}{{.Permalink}}{{end}}' method="get">
+  <label hidden for="search-input">Search</label>
+  <div class="input-group">
+    <input type="text" id="search-input" name="q" class="form-control" placeholder="Type here{{ if .IsDescendant (.GetPage "/search") }} to search{{end}}">
+    <button 
+      {{ if .IsDescendant (.GetPage "/search") }} 
+        class="btn btn-primary"
+      {{ else }}
+        type="submit" class="btn btn-secondary"
+      {{ end }}
+      >Search</button>
+  </div>
+</form>

@@ -1,0 +1,58 @@
+{{ define "main" }}
+
+<main class="container my-5">
+  
+  <!-- Main Title -->
+  {{ if .Title }}
+  <h1 class="display-1 mb-5">{{ .Title }}</h1>
+  {{ end }}
+
+  <!-- $pages -->
+  {{ $pages := union .RegularPages .Sections }}
+  <!---->{{ if .IsHome }} {{ $pages = where site.RegularPages "Type" "in" site.Params.mainSections }}
+  {{ end }}
+
+  <!-- Articles -->
+  <div class="d-flex flex-row flex-wrap mb-5">
+    {{ $paginator := .Paginate $pages }} {{ range $paginator.Pages }}
+    <div class="col-4 p-2">
+      <article class="note-entry w-100 border rounded bg-white p-4 overflow-hidden">
+        <div class="note-header mb-4">
+          <h2><a class="text-decoration-none" href="{{ .Permalink }}">{{ .Title }}</a></h2>
+          <span class="text-muted">Last modified: {{ .Lastmod | time.Format ":date_medium" }}</span>
+        </div>
+
+        <p>
+          {{ with .Description }}
+            {{ . }}
+          {{ else }}
+            {{ .Summary }}
+          {{ end }}
+        </p>
+      </article>
+    </div>
+    {{ end }}
+  </div>
+
+  <!-- Pagination -->
+  {{ if gt $paginator.TotalPages 1 }}
+  <nav class="w-fit-content mx-auto">
+    <ul class="pagination w-fit-content">
+      <li class="page-item {{ if not $paginator.HasPrev }} invisible {{ end }}">
+        <a class="page-link" href="{{ if $paginator.HasPrev }}{{ $paginator.Prev.URL }}{{ end }}">←</a>
+      </li>
+      {{ range $paginator.Pagers }}
+        <li class="page-item {{ if eq .PageNumber $paginator.PageNumber }} active {{ end }}">
+          <a href="{{ .URL }}" class="page-link">{{ .PageNumber }}</a>
+        </li>
+      {{ end }}
+      <li class="page-item {{ if not $paginator.HasNext }} invisible {{ end }}">
+        <a class="page-link" href="{{ if $paginator.HasNext }}{{ $paginator.Next.URL }}{{ end }}">→</a>
+      </li>
+    </ul>
+  </nav>
+  {{ end }}
+
+</main>
+
+{{ end }}

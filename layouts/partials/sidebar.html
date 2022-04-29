@@ -1,0 +1,18 @@
+<div class="sidenav d-flex flex-column flex-shrink-0 p-3 text-white bg-dark shadow ">
+  <a href="/" class="text-white text-center text-decoration-none">
+    <span class="fs-4 ">{{ site.Title }}</span>
+  </a>
+  <hr>
+  <nav class="nav nav-pills flex-column mb-auto">
+    {{ $currPage := . }}
+    {{ range where site.Sections "Type" "in" site.Params.mainSections }}
+    <div class="nav-item">
+      <a href="{{ .RelPermalink }}" class="nav-link text-white {{ if $currPage.InSection . }}active{{ end }}">{{ .Title }}</a>
+    </div>
+    {{ end }}
+  </nav>
+  {{ if not (.IsDescendant (.GetPage "/search")) }}
+  <hr>
+  {{ partial "search-form.html" . }}
+  {{ end }}
+</div>

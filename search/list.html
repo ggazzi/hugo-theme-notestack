@@ -1,0 +1,65 @@
+{{ define "main" }}
+<section class="container mt-5">
+  <div id="info-loading" class="alert alert-primary d-flex align-items-center w-fit-content gap-4">
+    <div class="spinner-border">
+    </div>
+    <div role="status">
+      Loading index of pages...
+    </div>
+  </div>
+  <div id="error-load-index" class="alert alert-danger w-fit-content d-none">
+    Cannot load the index of pages
+  </div>
+</section>
+
+<main id="main" class="container my-5 d-none">
+  <h1 class="display-1 mb-4">Search</h1>
+
+  <div class="col-6 mb-5">
+    {{ partial "search-form.html" . }}
+  </div>
+
+  <section>
+    <div class="mb-5">
+      <h2>Results:</h2>
+      <div id="info-search" class="alert alert-info">
+        Enter a keyword above to search this site
+      </div>
+      <div id="error-not-found" class="alert alert-danger w-fit-content d-none">
+        No results found for "<span id="error-not-found-query"></span>"
+      </div>
+      <div id="info-search-results" class="alert alert-info w-fit-content d-none">
+        Found <span id="info-search-results-count"></span> for "<span id="info-search-results-query"></span>"
+      </div>
+    </div>
+
+
+    <div id="search-results" class="d-flex flex-row flex-wrap mb-5">
+
+    </div>
+
+    <template id="template-entry">
+      <div class="col-4 p-2">
+        <article class="note-entry w-100 border rounded bg-white p-4 overflow-hidden">
+          <div class="note-header mb-4">
+            <h2><a class="template-entry-title text-decoration-none"></a></h2>
+            <span class="text-muted">Last modified: <span class="template-entry-lastmod"></span></span>
+            <div class="template-entry-tags"></div>
+          </div>
+          <p class="template-entry-summary"></p>
+        </article>
+      </div>
+    </template>
+
+    <template id="template-tag">
+      <span class="badge bg-secondary"></span>
+    </template>
+
+  </section>
+</main>
+
+{{ $lunr := resources.Get "js/lunr.min.js" }}
+<script src="{{ $lunr.Permalink }}" type="text/javascript"></script>
+{{ $search := resources.Get "js/search.js" }}
+<script src="{{ $search.Permalink }}" type="text/javascript"></script>
+{{ end }}
