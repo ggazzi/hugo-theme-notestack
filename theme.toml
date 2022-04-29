@@ -1,0 +1,12 @@
+name = "Notestack"
+license = "MIT"
+licenselink = "https://github.com/ggazzi/hugo-theme-notestack/blob/master/LICENSE"
+description = ""
+homepage = "https://github.com/ggazzi/hugo-theme-notestack"
+tags = []
+features = []
+min_version = "0.41.0"
+
+[author]
+  name = "Guilherme Grochau Azzi"
+  homepage = "https://github.com/ggazzi"
