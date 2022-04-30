@@ -151,13 +151,14 @@ class StackedNotesController {
 
     let links = [...note.querySelectorAll('a')];
     links.forEach(a => {
-      if (isRelativeUrl(a.getAttribute('href'))) {
+      const url = asRelativeUrl(a.getAttribute('href'));
+      if (url) {
         a.dataset.level = level;
         a.addEventListener("click", event => {
           if (!event.ctrlKey && !event.metaKey) {
             event.preventDefault();
-            this.stackNote(a.href, a.dataset.level);
-            this.pushToHistory();
+            this.stackNote(url, a.dataset.level)
+              .then(() => this.pushToHistory());
           }
         })
       } else {
@@ -169,11 +170,16 @@ class StackedNotesController {
   }
 }
 
-function isRelativeUrl(url) {
+function asRelativeUrl(url) {
   try {
-    return new URL(document.baseURI).origin == new URL(url, document.baseURI).origin;
+    let resolved = new URL(url, document.baseURI);
+    if (resolved.origin === new URL(document.baseURI).origin) {
+      return resolved.pathname;
+    } else {
+      return null;
+    }
   } catch {
-    return false;
+    return null;
   }
 }
 
