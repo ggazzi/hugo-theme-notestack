@@ -8,7 +8,8 @@ class StackedNote {
 
 class StackedNotesController {
 
-  constructor(notes_container, placeholder_template) {
+  constructor(title_base, notes_container, placeholder_template) {
+    this.title_base = title_base;
     this.container = notes_container;
     this.placeholder = placeholder_template.content.firstElementChild;
     this.notes = [];
@@ -123,6 +124,7 @@ class StackedNotesController {
   }
 
   commitNotes(focus_target) {
+    document.title = this.title_base + this.notes.map(note => note.title).join(' » ');
     setTimeout(
       () => {
         if (focus_target) {
@@ -217,9 +219,10 @@ function refreshAsides(note) {
 }
 
 window.addEventListener('load', event => {
+  const title_base = document.title.split(" · ")[0] + " · ";
   const container = document.getElementById("notes-container");
   const placeholder_template = document.getElementById("template-note-placeholder");
-  const controller = new StackedNotesController(container, placeholder_template);
+  const controller = new StackedNotesController(title_base, container, placeholder_template);
 
   const params = new URLSearchParams(window.location.search);
   let notes = params.get('stacked-notes');

@@ -1,4 +1,4 @@
-<title>{{ .Site.Title }} · {{ .Title }}</title>
+<title>{{ .Site.Title }}{{ if ne .Site.Title .Title }} · {{ .Title }}{{ end }}</title>
 
 <!-- META TAGS -->
 <meta charset="utf-8">
