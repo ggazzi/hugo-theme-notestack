@@ -132,6 +132,8 @@ class StackedNotesController {
         })
       } else {
         a.classList.add("external-link");
+        a.setAttribute('target', '_blank');
+        a.setAttribute('rel', 'noopener noreferrer');
       }
     });
   }
