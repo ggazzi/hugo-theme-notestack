@@ -1,7 +1,8 @@
 class StackedNotesController {
 
-  constructor(notes_container) {
+  constructor(notes_container, placeholder_template) {
     this.container = notes_container;
+    this.placeholder = placeholder_template.content.firstElementChild;
     this.notes = [];
 
     for (const note of notes_container.children) {
@@ -22,23 +23,33 @@ class StackedNotesController {
     this.unstackNotes(hrefs.length);
 
     let note;
-    for (const i = 0; i < this.notes.length; i++) {
+    for (let i = 0; i < this.notes.length; i++) {
       if (this.notes[i] == hrefs[i]) {
         continue;
       } else {
+        this.container.children[i].replaceWith(this.placeholder);
+        const placeholder_focus = setTimeout(() => this.placeholder.scrollIntoView({behavior: "smooth", inline: "center"}), 10);
         note = await this.fetchNote(hrefs[i], i);
-        this.container.children[i].replaceWith(note);
+        clearTimeout(placeholder_focus);
+
+        this.placeholder.replaceWith(note);
         this.notes[i] = hrefs[i];
       }
     }
 
-    for (const i = this.notes.length; i < hrefs.length; i++) {
+    this.container.appendChild(this.placeholder);
+
+    for (let i = this.notes.length; i < hrefs.length; i++) {
+      const placeholder_focus = setTimeout(() => this.placeholder.scrollIntoView({behavior: "smooth", inline: "center"}), 10);
       note = await this.fetchNote(hrefs[i], i);
-      this.container.appendChild(note);
+      clearTimeout(placeholder_focus);
+
+      this.placeholder.before(note);
       this.notes.push(hrefs[i]);
     }
 
-    commitNotes(note);
+    this.container.removeChild(this.placeholder);
+    this.commitNotes(note);
   }
 
   async stackNote(href, level) {
@@ -50,10 +61,15 @@ class StackedNotesController {
 
     level = Number(level) || this.notes.length;
     this.unstackNotes(level);
-    
+
+    this.container.appendChild(this.placeholder);
+
     // FIXME: handling of URLs with #-parts
+    const placeholder_focus = setTimeout(() => this.placeholder.scrollIntoView({behavior: "smooth", inline: "center"}), 10);
     const note = await this.fetchNote(href, level);
-    this.container.appendChild(note);
+    clearTimeout(placeholder_focus);
+
+    this.placeholder.replaceWith(note);
     this.notes.push(href);
     this.commitNotes(note);
   }
@@ -62,13 +78,19 @@ class StackedNotesController {
     level = Number(level) || this.notes.length;
     this.unstackNotes(level);
 
+    this.container.appendChild(this.placeholder);
+
     let note;
     for (const href of hrefs) {
+      const placeholder_focus = setTimeout(() => this.placeholder.scrollIntoView({behavior: "smooth", inline: "center"}), 10);
       note = await this.fetchNote(href, level);
-      this.container.appendChild(note);
+      clearTimeout(placeholder_focus);
+
+      this.placeholder.before(note);
       this.notes.push(href);
     }
 
+    this.container.removeChild(this.placeholder);
     this.commitNotes(note);
   }
 
@@ -84,14 +106,14 @@ class StackedNotesController {
     this.postprocessNote(note, level + 1);
     return note;
   }
-  
+
   unstackNotes(level) {
     for (let i = this.container.children.length - 1; i >= level; i--) {
       this.container.removeChild(this.container.children[i]);
     }
     this.notes = this.notes.slice(0, level);
   }
-  
+
   commitNotes(focus_target) {
     setTimeout(
       () => {
@@ -182,8 +204,9 @@ function refreshAsides(note) {
 
 window.addEventListener('load', event => {
   const container = document.getElementById("notes-container");
-  const controller = new StackedNotesController(container);
-  
+  const placeholder_template = document.getElementById("template-note-placeholder");
+  const controller = new StackedNotesController(container, placeholder_template);
+
   const params = new URLSearchParams(window.location.search);
   let notes = params.get('stacked-notes');
   try {
