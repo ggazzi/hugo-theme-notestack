@@ -7,6 +7,10 @@
     width: 15rem;
 }
 
+#sidebar-pagelist {
+    overflow-y: auto;
+}
+
 body {
     padding-left: 15rem;
     overflow-x: auto;

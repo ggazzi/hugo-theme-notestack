@@ -2,42 +2,50 @@ class StackedNote {
   readonly href : string;
   readonly title: string;
   readonly element: HTMLElement;
+  readonly sidebar_item: HTMLElement;
 
-  constructor(href: string, element: HTMLElement) {
+  constructor(href: string, element: HTMLElement, sidebar_item: HTMLElement) {
     this.href = href;
     this.title = element.querySelector('h1').textContent;
     this.element = element;
+    this.sidebar_item = sidebar_item;
   }
 }
 
 type StackedNotesControllerParams = {
   title_base: string;
   notes_container: HTMLElement;
-  placeholder_template: HTMLTemplateElement;
+  note_placeholder: HTMLElement;
+  sidebar_list: HTMLElement;
+  sidebar_item_template: HTMLElement;
 }
 
+const SCROLL_BEHAVIOUR: ScrollIntoViewOptions = 
+  {behavior: "smooth", inline: "center"};
 
 class StackedNotesController {
-  readonly title_base: string;
-  private readonly container : Element;
-  private readonly placeholder : Element;
+  private readonly title_base: string;
+  private readonly container : HTMLElement;
+  private readonly note_placeholder : HTMLElement;
+  private readonly sidebar_list : HTMLElement;
+  private readonly sidebar_item_template : HTMLElement;
   private readonly notes: StackedNote[];
 
   constructor(params: StackedNotesControllerParams) {
     this.title_base = params.title_base;
     this.container = params.notes_container;
-    this.placeholder = params.placeholder_template.content.firstElementChild;
+    this.note_placeholder = params.note_placeholder;
+    this.sidebar_list = params.sidebar_list;
+    this.sidebar_item_template = params.sidebar_item_template;
     this.notes = [];
 
-    for (const note of this.container.children) {
-      if (note instanceof HTMLElement && [...note.classList].includes('note') && 'href' in note.dataset) {
-        this.notes.push(new StackedNote(note.dataset.href, note));
-
-        let level = this.notes.length
-        note.dataset.level = level.toString();
-        this.postprocessNote(note, level);
+    for (const note_elem of this.container.children) {
+      if (note_elem instanceof HTMLElement && [...note_elem.classList].includes('note') && 'href' in note_elem.dataset) {
+        const note = this.buildNote(note_elem.dataset.href, note_elem, this.notes.length);
+        this.notes.push(note);
+        this.sidebar_list.appendChild(note.sidebar_item);
       } else {
-        this.container.removeChild(note);
+        this.container.removeChild(note_elem);
       }
     }
   }
@@ -51,83 +59,103 @@ class StackedNotesController {
       if (this.notes[i].href === hrefs[i]) {
         continue;
       } else {
-        this.container.children[i].replaceWith(this.placeholder);
-        const placeholder_focus = setTimeout(() => this.placeholder.scrollIntoView({behavior: "smooth", inline: "center"}), 10);
-        note = await this.fetchNote(hrefs[i], i);
-        clearTimeout(placeholder_focus);
-
-        this.placeholder.replaceWith(note);
-        this.notes[i] = new StackedNote(hrefs[i], note);
+        this.container.children[i].replaceWith(this.note_placeholder);
+        this.notes[i] = note = await this.fetchAndPlaceNote(hrefs[i], i);
       }
     }
 
-    this.container.appendChild(this.placeholder);
+    this.container.appendChild(this.note_placeholder);
 
     for (let i = this.notes.length; i < hrefs.length; i++) {
-      const placeholder_focus = setTimeout(() => this.placeholder.scrollIntoView({behavior: "smooth", inline: "center"}), 10);
-      note = await this.fetchNote(hrefs[i], i);
-      clearTimeout(placeholder_focus);
-
-      this.placeholder.before(note);
-      this.notes.push(new StackedNote(hrefs[i], note));
+      note = await this.fetchAndPlaceNote(hrefs[i], i);
     }
 
-    this.container.removeChild(this.placeholder);
+    this.note_placeholder.remove();
     this.commitNotes(note);
   }
 
   async stackNote(href: string, level: number) {
     let existing_note = this.notes.find(note => note.href === href);
     if (existing_note) {
-      existing_note.element.scrollIntoView({behavior: "smooth", inline: "center"});
+      existing_note.element.scrollIntoView(SCROLL_BEHAVIOUR);
       return;
     }
 
     level = Number(level) || this.notes.length;
     this.unstackNotes(level);
 
-    this.container.appendChild(this.placeholder);
+    this.container.appendChild(this.note_placeholder);
 
     // FIXME: handling of URLs with #-parts
-    const placeholder_focus = setTimeout(() => this.placeholder.scrollIntoView({behavior: "smooth", inline: "center"}), 10);
-    const note = await this.fetchNote(href, level);
-    clearTimeout(placeholder_focus);
+    const note = await this.fetchAndPlaceNote(href, level);
 
-    this.placeholder.replaceWith(note);
-    this.notes.push(new StackedNote(href, note));
-    this.commitNotes(note);
+    this.note_placeholder.remove();
+    this.commitNotes(note.element);
   }
 
   async stackNotes(hrefs: string[], level: number) {
     level = Number(level) || this.notes.length;
     this.unstackNotes(level);
 
-    this.container.appendChild(this.placeholder);
+    this.container.appendChild(this.note_placeholder);
 
-    let note;
+    let note: StackedNote;
     for (const href of hrefs) {
-      const placeholder_focus = setTimeout(() => this.placeholder.scrollIntoView({behavior: "smooth", inline: "center"}), 10);
-      note = await this.fetchNote(href, level);
-      clearTimeout(placeholder_focus);
-
-      this.placeholder.before(note);
-      this.notes.push(new StackedNote(href, note));
+      note = await this.fetchAndPlaceNote(href, level);
     }
 
-    this.container.removeChild(this.placeholder);
-    this.commitNotes(note);
+    this.note_placeholder.remove();
+    this.commitNotes(note.element);
   }
 
-  async fetchNote(href: string, level: number) : Promise<HTMLElement> {
-    const response = await fetch(new Request(href));
-    const rawHtml = await response.text();
+  // Pre: placeholder is in the location of the note
+  // Post: placeholder is next sibling of note
+  // Post: note pushed to this.notes
+  // Post: note added to sidebar
+  async fetchAndPlaceNote(href: string, level: number) : Promise<StackedNote> {
+    const placeholder_focus = setTimeout(() => this.note_placeholder.scrollIntoView(SCROLL_BEHAVIOUR), 10);
+    this.note_placeholder.querySelector('#info-loading').classList.remove('d-none');
+    this.note_placeholder.querySelector('#error-loading').classList.add('d-none');
 
-    let fragment = document.createElement("template");
-    fragment.innerHTML = rawHtml;
+    let note: StackedNote;
+    try {
+      const response = await fetch(new Request(href));
+      const rawHtml = await response.text();
 
-    let note = fragment.content.querySelector('.note') as HTMLElement;
-    this.postprocessNote(note, ++level);
-    note.dataset.level = level.toString();
+      let fragment = document.createElement("template");
+      fragment.innerHTML = rawHtml;
+  
+      note = this.buildNote(href, fragment.content.querySelector('.note'), level);
+    } catch {
+      this.note_placeholder.querySelector('#info-loading').classList.add('d-none');
+      this.note_placeholder.querySelector('#error-loading').classList.remove('d-none');
+      return
+    }
+
+    clearTimeout(placeholder_focus);
+
+    this.notes.push(note);
+    this.note_placeholder.before(note.element);
+    this.sidebar_list.appendChild(note.sidebar_item);
+
+    return note
+  }
+
+  buildNote(href: string, note_elem: HTMLElement, level: number) : StackedNote {
+    this.postprocessNoteElem(note_elem, ++level);
+    note_elem.dataset.href = href;
+    note_elem.dataset.level = level.toString();
+
+    const sidebar_elem = this.sidebar_item_template.cloneNode(true) as HTMLElement;
+    const note = new StackedNote(href, note_elem, sidebar_elem)
+
+    const link = sidebar_elem.querySelector('.sidebar-item-link') || sidebar_elem;
+    link.textContent = note_elem.querySelector('h1').textContent;
+    link.addEventListener('click', event => {
+      event.preventDefault();
+      note.element.scrollIntoView(SCROLL_BEHAVIOUR)
+    });
+
     return note;
   }
 
@@ -135,15 +163,17 @@ class StackedNotesController {
     for (let i = this.notes.length - 1; i >= level; i--) {
       const note = this.notes.pop();
       note.element.remove();
+      this.sidebar_list.children[i].remove();
     }
   }
 
-  commitNotes(focus_target: HTMLElement) {
+  commitNotes(focus_target: HTMLElement | undefined) {
     document.title = this.title_base + this.notes.map(note => note.title).join(' » ');
+
     setTimeout(
       () => {
         if (focus_target) {
-          focus_target.scrollIntoView({behavior: "smooth", inline: "center"});
+          focus_target.scrollIntoView(SCROLL_BEHAVIOUR);
         }
         //@ts-ignore
         if (window.MathJax) {
@@ -163,7 +193,7 @@ class StackedNotesController {
     window.history.pushState(state, "", url.toString());
   }
 
-  postprocessNote(note: HTMLElement, level: number) {
+  postprocessNoteElem(note: HTMLElement, level: number) {
     level = Number(level) || this.notes.length;
 
     setTimeout(() => refreshAsides(note), 5);
@@ -239,7 +269,9 @@ window.addEventListener('load', event => {
   const controller = new StackedNotesController({
     title_base: document.title.split(" · ")[0] + " · ",
     notes_container: document.getElementById("notes-container") as HTMLElement,
-    placeholder_template: document.getElementById("template-note-placeholder") as HTMLTemplateElement,
+    note_placeholder: (document.getElementById("template-note-placeholder") as HTMLTemplateElement).content.children[0] as HTMLElement,
+    sidebar_list: document.getElementById("sidebar-pagelist") as HTMLElement,
+    sidebar_item_template: (document.getElementById("template-sidebar-pagelist-item") as HTMLTemplateElement).content.children[0] as HTMLElement,
   });
 
   const params = new URLSearchParams(window.location.search);
@@ -255,7 +287,9 @@ window.addEventListener('load', event => {
   }
 
   window.addEventListener('popstate', event => {
-    controller.setNotes(event.state.notes);
+    if (event.state?.notes) {
+      controller.setNotes(event.state.notes);
+    }
   });
 
 })

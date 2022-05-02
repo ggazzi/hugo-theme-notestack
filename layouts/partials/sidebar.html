@@ -3,7 +3,7 @@
     <span class="fs-4 ">{{ site.Title }}</span>
   </a>
   <hr>
-  <nav class="nav nav-pills flex-column mb-auto">
+  <nav class="nav nav-pills flex-column">
     {{ $currPage := . }}
     {{ range where site.Sections "Type" "in" site.Params.mainSections }}
     <div class="nav-item">
@@ -11,8 +11,16 @@
     </div>
     {{ end }}
   </nav>
+  {{ if .IsPage }}
+    <hr>
+    <div id="sidebar-pagelist" class="list-group list-group-flush">     
+    </div>
+    <template id="template-sidebar-pagelist-item">
+      <a href="#" class="sidebar-pagelist-link list-group-item list-group-item-action"></div>
+    </template>
+  {{ end }}
   {{ if not (.IsDescendant (.GetPage "/search")) }}
-  <hr>
-  {{ partial "search-form.html" . }}
+    <hr class="mt-auto">
+    {{ partial "search-form.html" . }}
   {{ end }}
 </div>

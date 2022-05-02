@@ -11,24 +11,27 @@
 
       {{ .Content }}
     </section>
-    <template id="template-note-placeholder">
-      <div class="note bg-white m-4 shadow border rounded-3 p-5">
-        <div class="note-content">
-          <div class="d-flex align-items-center w-fit-content gap-4">
-            <div class="spinner-border">
-            </div>
-            <div role="status">
-              Loading...
-            </div>
-          </div>
-        </div>
-      </div>
-    </template>
     {{ partial "backlinks.html" . }}
   </article>
+  <template id="template-note-placeholder">
+    <div class="note bg-white m-4 shadow border rounded-3 p-5">
+      <div class="note-content">
+      <div id="info-loading" class="d-flex align-items-center w-fit-content gap-4">
+        <div class="spinner-border">
+        </div>
+        <div role="status">
+          Loading...
+        </div>
+      </div>
+      <div id="error-loading" class="alert alert-danger d-none" role="alert">
+        Error loading note.
+      </div>
+    </div>
+  </div>
+</template>
 </main>
 
-{{- $jsOpts := (dict "minify" true) -}}
+{{- $jsOpts := (dict "minify" (not site.BuildDrafts)) -}}
 {{- if site.BuildDrafts -}}
   {{- $jsOpts := merge $jsOpts (dict "sourceMap" "inline") -}}
 {{- end -}}
