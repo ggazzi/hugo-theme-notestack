@@ -1,25 +1,40 @@
 class StackedNote {
-  constructor(href, element) {
+  readonly href : string;
+  readonly title: string;
+  readonly element: HTMLElement;
+
+  constructor(href: string, element: HTMLElement) {
     this.href = href;
-    this.element = element;
     this.title = element.querySelector('h1').textContent;
+    this.element = element;
   }
 }
 
-class StackedNotesController {
+type StackedNotesControllerParams = {
+  title_base: string;
+  notes_container: HTMLElement;
+  placeholder_template: HTMLTemplateElement;
+}
 
-  constructor(title_base, notes_container, placeholder_template) {
-    this.title_base = title_base;
-    this.container = notes_container;
-    this.placeholder = placeholder_template.content.firstElementChild;
+
+class StackedNotesController {
+  readonly title_base: string;
+  private readonly container : Element;
+  private readonly placeholder : Element;
+  private readonly notes: StackedNote[];
+
+  constructor(params: StackedNotesControllerParams) {
+    this.title_base = params.title_base;
+    this.container = params.notes_container;
+    this.placeholder = params.placeholder_template.content.firstElementChild;
     this.notes = [];
 
-    for (const note of notes_container.children) {
-      if ([...note.classList].includes('note') && 'href' in note.dataset) {
+    for (const note of this.container.children) {
+      if (note instanceof HTMLElement && [...note.classList].includes('note') && 'href' in note.dataset) {
         this.notes.push(new StackedNote(note.dataset.href, note));
 
         let level = this.notes.length
-        note.dataset.level = level;
+        note.dataset.level = level.toString();
         this.postprocessNote(note, level);
       } else {
         this.container.removeChild(note);
@@ -27,13 +42,13 @@ class StackedNotesController {
     }
   }
 
-  async setNotes(hrefs) {
+  async setNotes(hrefs: string[]) {
     // We remove unnecessary notes, ensure this.notes.length <= hrefs.length
     this.unstackNotes(hrefs.length);
 
     let note;
     for (let i = 0; i < this.notes.length; i++) {
-      if (this.notes[i].href == hrefs[i]) {
+      if (this.notes[i].href === hrefs[i]) {
         continue;
       } else {
         this.container.children[i].replaceWith(this.placeholder);
@@ -61,8 +76,8 @@ class StackedNotesController {
     this.commitNotes(note);
   }
 
-  async stackNote(href, level) {
-    let existing_note = this.notes.find(note => note.href == href);
+  async stackNote(href: string, level: number) {
+    let existing_note = this.notes.find(note => note.href === href);
     if (existing_note) {
       existing_note.element.scrollIntoView({behavior: "smooth", inline: "center"});
       return;
@@ -83,7 +98,7 @@ class StackedNotesController {
     this.commitNotes(note);
   }
 
-  async stackNotes(hrefs, level) {
+  async stackNotes(hrefs: string[], level: number) {
     level = Number(level) || this.notes.length;
     this.unstackNotes(level);
 
@@ -103,34 +118,36 @@ class StackedNotesController {
     this.commitNotes(note);
   }
 
-  async fetchNote(href, level) {
+  async fetchNote(href: string, level: number) : Promise<HTMLElement> {
     const response = await fetch(new Request(href));
     const rawHtml = await response.text();
 
     let fragment = document.createElement("template");
     fragment.innerHTML = rawHtml;
 
-    let note = fragment.content.querySelector('.note');
-    note.dataset.level = level + 1;
-    this.postprocessNote(note, level + 1);
+    let note = fragment.content.querySelector('.note') as HTMLElement;
+    this.postprocessNote(note, ++level);
+    note.dataset.level = level.toString();
     return note;
   }
 
-  unstackNotes(level) {
+  unstackNotes(level: number) {
     for (let i = this.notes.length - 1; i >= level; i--) {
       const note = this.notes.pop();
       note.element.remove();
     }
   }
 
-  commitNotes(focus_target) {
+  commitNotes(focus_target: HTMLElement) {
     document.title = this.title_base + this.notes.map(note => note.title).join(' » ');
     setTimeout(
       () => {
         if (focus_target) {
           focus_target.scrollIntoView({behavior: "smooth", inline: "center"});
         }
+        //@ts-ignore
         if (window.MathJax) {
+          //@ts-ignore
           window.MathJax.typeset();
         }
       },
@@ -139,27 +156,27 @@ class StackedNotesController {
   }
 
   pushToHistory() {
-    let url = new URL(window.location);
+    let url = new URL(window.location.toString());
     url.searchParams.set("stacked-notes", JSON.stringify(this.notes.slice(1).map(note => note.href)))
 
     let state = { notes : this.notes.map(note => note.href) };
     window.history.pushState(state, "", url.toString());
   }
 
-  postprocessNote(note, level) {
+  postprocessNote(note: HTMLElement, level: number) {
     level = Number(level) || this.notes.length;
 
     setTimeout(() => refreshAsides(note), 5);
 
-    let links = [...note.querySelectorAll('a')];
+    let links = [...note.querySelectorAll('a')] as HTMLElement[];
     links.forEach(a => {
       const url = asRelativeUrl(a.getAttribute('href'));
       if (url) {
-        a.dataset.level = level;
+        a.dataset.level = level.toString();
         a.addEventListener("click", event => {
           if (!event.ctrlKey && !event.metaKey) {
             event.preventDefault();
-            this.stackNote(url, a.dataset.level)
+            this.stackNote(url, parseInt(a.dataset.level))
               .then(() => this.pushToHistory());
           }
         })
@@ -219,10 +236,11 @@ function refreshAsides(note) {
 }
 
 window.addEventListener('load', event => {
-  const title_base = document.title.split(" · ")[0] + " · ";
-  const container = document.getElementById("notes-container");
-  const placeholder_template = document.getElementById("template-note-placeholder");
-  const controller = new StackedNotesController(title_base, container, placeholder_template);
+  const controller = new StackedNotesController({
+    title_base: document.title.split(" · ")[0] + " · ",
+    notes_container: document.getElementById("notes-container") as HTMLElement,
+    placeholder_template: document.getElementById("template-note-placeholder") as HTMLTemplateElement,
+  });
 
   const params = new URLSearchParams(window.location.search);
   let notes = params.get('stacked-notes');

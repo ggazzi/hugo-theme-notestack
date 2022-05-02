@@ -58,8 +58,12 @@
   </section>
 </main>
 
+{{- $jsOpts := (dict "minify" true) -}}
+{{- if site.BuildDrafts -}}
+  {{- $jsOpts := merge $jsOpts (dict "sourceMap" "inline") -}}
+{{- end -}}
 {{ $lunr := resources.Get "js/lunr.min.js" }}
 <script src="{{ $lunr.Permalink }}" type="text/javascript"></script>
-{{ $search := resources.Get "js/search.js" }}
+{{ $search := resources.Get "js/search.js" | js.Build $jsOpts }}
 <script src="{{ $search.Permalink }}" type="text/javascript"></script>
 {{ end }}

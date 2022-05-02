@@ -28,6 +28,10 @@
   </article>
 </main>
 
-{{ $stackedNotes := resources.Get "js/stacked-notes.js" }}
+{{- $jsOpts := (dict "minify" true) -}}
+{{- if site.BuildDrafts -}}
+  {{- $jsOpts := merge $jsOpts (dict "sourceMap" "inline") -}}
+{{- end -}}
+{{ $stackedNotes := resources.Get "js/stacked-notes.ts" | js.Build $jsOpts }}
 <script src="{{ $stackedNotes.Permalink }}" type="text/javascript"></script>
 {{end}}
