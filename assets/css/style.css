@@ -78,6 +78,18 @@ aside {
     color: gray;
 }
 
+.post-nav {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-between;
+}
+
+.post-nav a {
+    color: gray;
+    text-decoration: none;
+}
+
 .highlight pre {
     border-radius: 3px;
     padding: 1ex;

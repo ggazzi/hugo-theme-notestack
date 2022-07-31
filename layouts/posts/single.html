@@ -1,0 +1,54 @@
+{{define "main"}}
+<main id="notes-container" class="notes-container px-3">
+  <article class="note bg-white m-4 shadow border rounded-3 p-5" data-href="{{ .RelPermalink }}">
+    <section class="note-content {{ if site.Params.smartAsides }}floating-asides{{ end }}">
+      <div class="note-header mb-4">
+        <!-- Post pagination -->
+        <nav class="post-nav mb-1">
+          {{ with .PrevInSection -}}
+            <a class="prev" href="{{ .RelPermalink }}">
+              « {{ .Title }}
+            </a>
+          {{- end }}
+          {{ with .NextInSection -}}
+            <a class="next" href="{{ .RelPermalink }}">
+              {{ .Title }} »
+            </a>
+          {{- end }}
+        </nav>
+
+        <h1>{{ .Title }}</h1>
+        {{ if .Lastmod }}
+        <span class="text-muted">Last modified: {{ .Lastmod | time.Format ":date_medium" }}</span>
+        {{ end }}
+      </div>
+
+      {{ .Content }}
+    </section>
+    {{ partial "backlinks.html" . }}
+  </article>
+  <template id="template-note-placeholder">
+    <div class="note bg-white m-4 shadow border rounded-3 p-5">
+      <div class="note-content">
+      <div id="info-loading" class="d-flex align-items-center w-fit-content gap-4">
+        <div class="spinner-border">
+        </div>
+        <div role="status">
+          Loading...
+        </div>
+      </div>
+      <div id="error-loading" class="alert alert-danger d-none" role="alert">
+        Error loading note.
+      </div>
+    </div>
+  </div>
+</template>
+</main>
+
+{{- $jsOpts := (dict "minify" (not site.BuildDrafts)) -}}
+{{- if site.BuildDrafts -}}
+  {{- $jsOpts := merge $jsOpts (dict "sourceMap" "inline") -}}
+{{- end -}}
+{{ $stackedNotes := resources.Get "js/stacked-notes.ts" | js.Build $jsOpts }}
+<script src="{{ $stackedNotes.Permalink }}" type="text/javascript"></script>
+{{end}}
