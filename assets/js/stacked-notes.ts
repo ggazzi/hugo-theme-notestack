@@ -238,19 +238,16 @@ function refreshAsides(note) {
     let name = aside.getAttribute('name');
     if (!name) {
       window.console.log("No name for aside:", aside);
-      aside.classList.remove("floating-aside");
       continue;
     }
 
     let target = note.querySelector(`span[name="${name}"]`);
     if (!target) {
       window.console.log("No target for aside:", aside);
-      aside.classList.remove("floating-aside");
       continue;
     }
 
     // FIXME: avoid overlapping with previous aside
-    aside.classList.add("floating-aside");
     aside.style = `top: ${target.offsetTop}px`;
 
     if (prev_aside) {

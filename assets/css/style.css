@@ -35,16 +35,20 @@ body {
 .note-content {
     position: relative;
     width: 35em;
-    margin-right: 15em;
     hyphens: auto;
     text-align: justify;
 }
 
-aside {
-    border-top: solid 1px #dee9ed;
+.note-content.floating-asides {
+    margin-right: 15em;
 }
 
-.floating-aside {
+aside {
+    border-top: solid 1px #dee9ed;
+    color: #666666;
+}
+
+.floating-asides aside {
     position: absolute;
     text-align: start;
     width: 14em;
