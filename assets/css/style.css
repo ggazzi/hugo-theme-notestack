@@ -99,3 +99,9 @@ aside {
     background-size: contain;
     display: inline-block;
 }
+
+blockquote {
+    margin-left: 1ex;
+    padding-left: 1em;
+    border-left: 2px solid #ccc;
+}
